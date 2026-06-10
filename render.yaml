@@ -1,0 +1,27 @@
+services:
+  # Backend Node.js Service
+  - type: web
+    name: zoom-backend
+    env: node
+    rootDir: backend
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: MONGO_URI
+        sync: false # You will need to add this manually in the Render Dashboard
+      - key: PORT
+        value: 8000
+
+  # Frontend React Service
+  - type: web
+    name: zoom-frontend
+    env: static
+    rootDir: frontend
+    buildCommand: npm install && npm run build
+    staticPublishPath: build
+    envVars:
+      - key: REACT_APP_BACKEND_URL
+        fromService:
+          type: web
+          name: zoom-backend
+          property: host

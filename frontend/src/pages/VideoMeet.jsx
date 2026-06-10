@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useEffect, useRef, useState, memo, useCallback } from 'react'
 import io from "socket.io-client";
 import { Badge, IconButton, TextField } from '@mui/material';
 import { Button } from '@mui/material';
@@ -23,6 +23,24 @@ const peerConfigConnections = {
     ]
 }
 
+const VideoComponent = memo(({ video }) => {
+    const videoRef = useRef(null);
+
+    useEffect(() => {
+        if (videoRef.current && video.stream) {
+            videoRef.current.srcObject = video.stream;
+        }
+    }, [video.stream]);
+
+    return (
+        <video
+            data-socket={video.socketId}
+            ref={videoRef}
+            autoPlay
+        />
+    );
+});
+
 export default function VideoMeetComponent() {
 
     var socketRef = useRef();
@@ -34,9 +52,9 @@ export default function VideoMeetComponent() {
 
     let [audioAvailable, setAudioAvailable] = useState(true);
 
-    let [video, setVideo] = useState([]);
+    let [video, setVideo] = useState(true);
 
-    let [audio, setAudio] = useState();
+    let [audio, setAudio] = useState(true);
 
     let [screen, setScreen] = useState();
 
@@ -83,22 +101,12 @@ export default function VideoMeetComponent() {
 
     const getPermissions = async () => {
         try {
-            const videoPermission = await navigator.mediaDevices.getUserMedia({ video: true });
-            if (videoPermission) {
+            if (navigator.mediaDevices.getUserMedia) {
                 setVideoAvailable(true);
-                console.log('Video permission granted');
+                setAudioAvailable(true);
             } else {
                 setVideoAvailable(false);
-                console.log('Video permission denied');
-            }
-
-            const audioPermission = await navigator.mediaDevices.getUserMedia({ audio: true });
-            if (audioPermission) {
-                setAudioAvailable(true);
-                console.log('Audio permission granted');
-            } else {
                 setAudioAvailable(false);
-                console.log('Audio permission denied');
             }
 
             if (navigator.mediaDevices.getDisplayMedia) {
@@ -106,33 +114,15 @@ export default function VideoMeetComponent() {
             } else {
                 setScreenAvailable(false);
             }
-
-            if (videoAvailable || audioAvailable) {
-                const userMediaStream = await navigator.mediaDevices.getUserMedia({ video: videoAvailable, audio: audioAvailable });
-                if (userMediaStream) {
-                    window.localStream = userMediaStream;
-                    if (localVideoref.current) {
-                        localVideoref.current.srcObject = userMediaStream;
-                    }
-                }
-            }
         } catch (error) {
             console.log(error);
         }
     };
 
-    useEffect(() => {
-        if (video !== undefined && audio !== undefined) {
-            getUserMedia();
-            console.log("SET STATE HAS ", video, audio);
-
-        }
-
-
-    }, [video, audio])
     let getMedia = () => {
         setVideo(videoAvailable);
         setAudio(audioAvailable);
+        getUserMedia();
         connectToSocketServer();
 
     }
@@ -383,12 +373,22 @@ export default function VideoMeetComponent() {
     }
 
     let handleVideo = () => {
-        setVideo(!video);
-        // getUserMedia();
+        if (window.localStream) {
+            const videoTrack = window.localStream.getVideoTracks()[0];
+            if (videoTrack) {
+                videoTrack.enabled = !videoTrack.enabled;
+                setVideo(videoTrack.enabled);
+            }
+        }
     }
     let handleAudio = () => {
-        setAudio(!audio)
-        // getUserMedia();
+        if (window.localStream) {
+            const audioTrack = window.localStream.getAudioTracks()[0];
+            if (audioTrack) {
+                audioTrack.enabled = !audioTrack.enabled;
+                setAudio(audioTrack.enabled);
+            }
+        }
     }
 
     useEffect(() => {
@@ -525,20 +525,10 @@ export default function VideoMeetComponent() {
 
                     <video className={styles.meetUserVideo} ref={localVideoref} autoPlay muted></video>
 
-                    <div className={styles.conferenceView}>
+                    <div className={`${styles.conferenceView} ${showModal ? styles.conferenceViewWithChat : ''}`}>
                         {videos.map((video) => (
                             <div key={video.socketId}>
-                                <video
-
-                                    data-socket={video.socketId}
-                                    ref={ref => {
-                                        if (ref && video.stream) {
-                                            ref.srcObject = video.stream;
-                                        }
-                                    }}
-                                    autoPlay
-                                >
-                                </video>
+                                <VideoComponent video={video} />
                             </div>
 
                         ))}
