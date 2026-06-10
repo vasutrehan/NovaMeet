@@ -9,8 +9,7 @@ services:
     startCommand: npm start
     envVars:
       - key: MONGO_URI
-        value: "<your-mongodb-connection-string>"
+        value: "mongodb+srv://vasutrehan69_db_user:radha%40madhav6@cluster1.l6osvxu.mongodb.net/"
         # You will need to replace this with your actual MongoDB URI in the Render dashboard.
       - key: PORT
         value: 8000
-
