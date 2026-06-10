@@ -9,7 +9,8 @@ services:
     startCommand: npm start
     envVars:
       - key: MONGO_URI
-        sync: false # You will need to add this manually in the Render Dashboard
+        value: "<your-mongodb-connection-string>"
+        # You will need to replace this with your actual MongoDB URI in the Render dashboard.
       - key: PORT
         value: 8000
 
